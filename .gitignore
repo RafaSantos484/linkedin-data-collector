@@ -1,2 +1,5 @@
 .env
 results.json
+linkedin_cookies.pkl
+__pycache__
+
