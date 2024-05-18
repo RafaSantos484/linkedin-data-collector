@@ -1,5 +1,5 @@
 .env
-results.json
+*.json
 linkedin_cookies.pkl
 __pycache__
-
+.wdm
