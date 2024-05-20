@@ -1,4 +1,3 @@
-import json
 import os
 import pickle
 
@@ -32,12 +31,14 @@ for cookie in cookies:
 
 getter.get_users_info(
     ["https://www.linkedin.com/in/felipe-carvalho-6249a5147/",
-     "https://www.linkedin.com/in/giulian-bastos-503312226/",
      "https://www.linkedin.com/in/rafael-santos-6089bb24a/"],
     output_file="results.json")
 
 getter.quit()
 
 """"
-rafaelsantos32141@gmail.com
+Generating .exe file:
+    pyinstaller main.py -F --onefile
+    or
+    python -m pyinstaller main.py -F --onefile
 """

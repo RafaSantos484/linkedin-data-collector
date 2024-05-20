@@ -1,4 +1,5 @@
 import json
+from bs4 import BeautifulSoup, Tag
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -21,9 +22,9 @@ class Getter:
         except:
             return None
 
-    def __get_text(self, xpath: str, driver=None):
-        driver = driver or self.driver
-        el = self.__get_element_by_path(driver, xpath)
+    def __get_text(self, path: str, by=By.XPATH, driver=None, timeout=3.):
+        driver = driver if driver is not None else self.driver
+        el = self.__get_element_by_path(driver, path, by=by, timeout=timeout)
 
         return None if el is None else el.text
 
@@ -38,15 +39,26 @@ class Getter:
         li_list = ul_element.find_elements(By.XPATH, "./child::*")
         experiences = []
         for li in li_list:
-            info_div = self.__get_element_by_path(li, "div/div/div[2]/div[1]/div", timeout=.1) or\
-                self.__get_element_by_path(li, "div/div/div[2]/div[1]/a")
-            if info_div is not None:
-                spans = info_div.find_elements(
-                    By.CLASS_NAME, "visually-hidden")
-                set_info = set(
-                    [span.text for span in spans if span.tag_name == "span"])
-                if len(set_info) > 0:
-                    experiences.append(tuple(set_info))
+            title = self.__get_element_by_path(
+                li, "./div/div/div[2]/div[1]/div/div/div/div/div/span[1]")
+            if title is None:
+                continue
+            title = title.text
+
+            location = self.__get_element_by_path(
+                li, "./div/div/div[2]/div[1]/div/span[1]/span[1]")
+            location = location.text if location is not None else None
+
+            info = self.__get_element_by_path(
+                li, "./div/div/div[2]/div[2]/ul/li/div/ul/li/div/div/div/span[1]")
+            info = info.text if info is not None else None
+
+            duration = self.__get_element_by_path(
+                li, "./div/div/div[2]/div[1]/div/span[2]/span[1]")
+            duration = duration.text if duration is not None else None
+
+            experiences.append(
+                {"title": title, "location": location, "info": info, "duration": duration})
 
         return experiences
 
@@ -62,20 +74,70 @@ class Getter:
                 print(f"Getting info of {url}")
 
             self.driver.get(url)
-            title = self.__get_text(
-                "/html/body/div[5]/div[3]/div/div/div[2]/div/div/main/section[1]/div[2]/div[2]/div[1]/div[1]/span[1]/a/h1")
-            if title is None:
+
+            name = None
+            title = None
+            location = None
+            about = None
+
+            loaded_cards = self.__get_element_by_path(
+                self.driver, "h2.pvs-header__title", by=By.CSS_SELECTOR, timeout=10) is not None
+            if not loaded_cards:
+                continue
+
+            soup = BeautifulSoup(self.driver.page_source, "html.parser")
+            main_element = soup.find("main", class_="scaffold-layout__main")
+            if main_element is None:
+                continue
+            cards: list[Tag] = main_element.find_all("section")
+            is_first_card = True
+            for card in cards:
+                if is_first_card:
+                    name_tag = card.find("h1", class_="text-heading-xlarge")
+                    if name_tag is None:
+                        break
+
+                    title_tag = card.find(
+                        "div", class_="text-body-medium break-words")
+                    location_tag = card.find(
+                        "span", class_="text-body-small inline t-black--light break-words")
+
+                    name = name_tag.get_text().strip()
+                    if title_tag is not None:
+                        title = title_tag.get_text().strip()
+                    if location_tag is not None:
+                        location = location_tag.get_text().strip()
+
+                    is_first_card = False
+                else:
+                    card_title_tag = card.find(
+                        "h2", class_="pvs-header__title")
+                    if card_title_tag is None:
+                        continue
+
+                    span_tags: list[Tag] = card.find_all(
+                        "span", class_="visually-hidden")
+                    span_texts = [tag.get_text().strip() for tag in span_tags]
+                    card_title = card_title_tag.find(
+                        "span").get_text().strip().lower()
+                    if card_title == "sobre":
+                        about = span_texts[1]
+            if name is None:
                 print(f"Failed to obtain info of {url}")
                 continue
 
-            description = self.__get_text(
-                "/html/body/div[5]/div[3]/div/div/div[2]/div/div/main/section[1]/div[2]/div[2]/div[1]/div[2]")
-            about = self.__get_text(
-                "/html/body/div[5]/div[3]/div/div/div[2]/div/div/main/section[2]/div[3]/div/div/div/span[1]")
+            # "https://www.linkedin.com/in/{id}/details/experience/"
             experiences = self.__get_experiences(id)
+            # "https://www.linkedin.com/in/{id}/details/education/"
+            # "https://www.linkedin.com/in/{id}/details/projects/"
+            # "https://www.linkedin.com/in/{id}/details/skills/"
 
             users[id] = {
-                "title": title, "description": description, "about": about, "experiences": experiences
+                "name": name,
+                "title": title,
+                "location": location,
+                "about": about,
+                "experiences": experiences
             }
 
         if output_file is not None:

@@ -1,8 +1,5 @@
 import re
 
-from selenium import webdriver
-from selenium.webdriver.support.ui import WebDriverWait
-
 
 def extract_linkedin_id(url):
     pattern = r'(https?://)?(www\.)?linkedin\.com/in/([a-zA-Z0-9_-]+)'
