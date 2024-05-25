@@ -36,29 +36,38 @@ class Getter:
         if ul_element is None:
             return None
 
-        li_list = ul_element.find_elements(By.XPATH, "./child::*")
+        soup = BeautifulSoup(self.driver.page_source, "html.parser")
+        li_list: list[Tag] = soup.find_all(
+            'li', id=lambda x: x and 'profilePagedListComponent' in x)
+        if len(li_list) == 0:
+            return None
+
         experiences = []
         for li in li_list:
-            title = self.__get_element_by_path(
-                li, "./div/div/div[2]/div[1]/div/div/div/div/div/span[1]")
+            title = li.select_one(
+                "div > div > div:nth-of-type(2) > div:nth-of-type(1) > div > div > div > div > div > span:nth-of-type(1)")
             if title is None:
                 continue
             title = title.text
 
-            location = self.__get_element_by_path(
-                li, "./div/div/div[2]/div[1]/div/span[1]/span[1]")
-            location = location.text if location is not None else None
+            hirer = li.select_one(
+                "div > div > div:nth-of-type(2) > div:nth-of-type(1) > div > span:nth-of-type(1) > span:nth-of-type(1)")
+            hirer = hirer.text if hirer is not None else None
 
-            info = self.__get_element_by_path(
-                li, "./div/div/div[2]/div[2]/ul/li/div/ul/li/div/div/div/span[1]")
-            info = info.text if info is not None else None
-
-            duration = self.__get_element_by_path(
-                li, "./div/div/div[2]/div[1]/div/span[2]/span[1]")
+            duration = li.select_one(
+                "div > div > div:nth-of-type(2) > div:nth-of-type(1) > div > span:nth-of-type(2) > span:nth-of-type(1)")
             duration = duration.text if duration is not None else None
 
+            location = li.select_one(
+                "div > div > div:nth-of-type(2) > div:nth-of-type(1) > div > span:nth-of-type(3) > span:nth-of-type(1)")
+            location = location.text if location is not None else None
+
+            info = li.select_one(
+                "div > div > div:nth-of-type(2) > div:nth-of-type(2) > ul > li > div > ul > li > div > div > div > span:nth-of-type(1)")
+            info = info.text if info is not None else None
+
             experiences.append(
-                {"title": title, "location": location, "info": info, "duration": duration})
+                {"title": title, "hirer": hirer, "duration": duration, "location": location, "info": info})
 
         return experiences
 
@@ -110,17 +119,13 @@ class Getter:
 
                     is_first_card = False
                 else:
-                    card_title_tag = card.find(
-                        "h2", class_="pvs-header__title")
-                    if card_title_tag is None:
-                        continue
-
                     span_tags: list[Tag] = card.find_all(
                         "span", class_="visually-hidden")
+                    if len(span_tags) < 2:
+                        continue
+
                     span_texts = [tag.get_text().strip() for tag in span_tags]
-                    card_title = card_title_tag.find(
-                        "span").get_text().strip().lower()
-                    if card_title == "sobre":
+                    if span_texts[0].lower() == "sobre":
                         about = span_texts[1]
             if name is None:
                 print(f"Failed to obtain info of {url}")
