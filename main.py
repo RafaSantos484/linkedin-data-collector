@@ -7,24 +7,37 @@ from selenium.webdriver.firefox.service import Service
 
 from utils import *
 from getter import *
+from searcher import *
+
 
 if not os.path.exists('linkedin_cookies.pkl'):
-    getter = Getter(webdriver.Firefox())
-    getter.driver.get('https://www.linkedin.com/login/')
-    getter.wait_until_redirect(
-        "https://www.linkedin.com/feed/", timeout=float('inf'))
+    driver = webdriver.Firefox()
+    driver.get('https://www.linkedin.com/login/')
+    wait_until_redirect(
+        driver, "https://www.linkedin.com/feed/", timeout=float('inf'))
 
     f = open('linkedin_cookies.pkl', 'wb')
-    cookies = getter.driver.get_cookies()
-    pickle.dump(getter.driver.get_cookies(), f)
-    getter.quit()
+    cookies = driver.get_cookies()
+    pickle.dump(driver.get_cookies(), f)
+    driver.quit()
 else:
     f = open('linkedin_cookies.pkl', 'rb')
     cookies = pickle.load(f)
 
 options = Options()
 options.add_argument("--headless")
-getter = Getter(webdriver.Firefox(options))
+
+driver = webdriver.Firefox(options)
+driver.get('https://www.linkedin.com/')
+for cookie in cookies:
+    driver.add_cookie(cookie)
+
+searcher = Searcher(driver)
+ids = searcher.get_ids('Developer')
+print(ids)
+
+"""
+getter = Getter(driver)
 getter.driver.get('https://www.linkedin.com/')
 for cookie in cookies:
     getter.driver.add_cookie(cookie)
@@ -34,12 +47,7 @@ getter.get_users_info(
      "https://www.linkedin.com/in/rafael-santos-6089bb24a/"
      ],
     output_file="results.json")
-
-getter.quit()
-
-""""
-Generating .exe file:
-    pyinstaller main.py -F --onefile
-    or
-    python -m pyinstaller main.py -F --onefile
 """
+
+# getter.quit()
+driver.quit()

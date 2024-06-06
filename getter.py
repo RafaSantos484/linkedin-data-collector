@@ -14,20 +14,11 @@ class Getter:
     def __init__(self, driver: webdriver.Firefox) -> None:
         self.driver = driver
 
-    def wait_until_redirect(self, url: str, timeout=10.):
-        WebDriverWait(self.driver, timeout).until(EC.url_to_be(url))
-
     def __get_element_by_path(self, driver: webdriver.Firefox | WebElement, path: str, timeout=5., by=By.XPATH):
         try:
             return WebDriverWait(driver, timeout).until(EC.visibility_of_element_located((by, path)))
         except:
             return None
-
-    def __get_text(self, path: str, by=By.XPATH, driver=None, timeout=3.):
-        driver = driver if driver is not None else self.driver
-        el = self.__get_element_by_path(driver, path, by=by, timeout=timeout)
-
-        return None if el is None else el.text
 
     def __get_experiences(self, id: str):
         self.driver.get(
