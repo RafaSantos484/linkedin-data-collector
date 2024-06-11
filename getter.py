@@ -173,17 +173,11 @@ class Getter:
 
         return education
 
-    def get_users_info(self, user_urls: list[str], output_file: str | None = None):
+    def get_users_info(self, user_ids: list[str], output_file: str | None = None):
         print("Extracting users info...")
         users = {}
-        for url in user_urls:
-            id = extract_linkedin_id(url)
-            if id is None:
-                print(f"Invalid URL: {url}")
-                continue
-            else:
-                print(f"Getting info of {url}")
-
+        for id in user_ids:
+            url = f"https://www.linkedin.com/in/{id}/"
             self.driver.get(url)
 
             name = None
